@@ -12,6 +12,7 @@ import {
   FileText,
   ScrollText,
   Plug,
+  Activity,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useSettings } from "./useSettings";
@@ -23,6 +24,7 @@ import LinksSection from "./sections/LinksSection";
 import ExtractionSection from "./sections/ExtractionSection";
 import LogsSection from "./sections/LogsSection";
 import IntegrationsSection from "./sections/IntegrationsSection";
+import DiagnosticsSection from "./sections/DiagnosticsSection";
 
 const tabs = [
   { id: "crawler", label: "Crawler", icon: Bug },
@@ -31,6 +33,7 @@ const tabs = [
   { id: "extraction", label: "Data", icon: FileText },
   { id: "logs", label: "Logs", icon: ScrollText },
   { id: "integrations", label: "Integrations", icon: Plug },
+  { id: "diagnostics", label: "Diagnostics", icon: Activity },
 ];
 
 interface SettingsModalProps {
@@ -110,6 +113,10 @@ const SettingsModal = ({ close }: SettingsModalProps) => {
       case "integrations":
         return (
           <IntegrationsSection settings={settings} onUpdate={updateSetting} />
+        );
+      case "diagnostics":
+        return (
+          <DiagnosticsSection />
         );
       default:
         return null;

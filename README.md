@@ -140,3 +140,27 @@ Use at your own risk, this software is new and under development.
 | CTRL + Shift + C | Delete Logs From DB      |
 | CTRL + /         | Clear cache              |
 | CTRL + Shift + / | Full app reset           |
+
+## 🛠️ Development & Local Build Prerequisites
+
+To run and compile RustySEO locally, please ensure you have the required system dependencies installed.
+
+### 🐧 Linux (Ubuntu / Debian)
+
+Before compiling the Rust backend, you must install the WebKit2GTK, AppIndicator, RSVG, and GTK development libraries:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev build-essential curl wget
+```
+
+### 📦 Quick Start (Development Mode)
+
+1. Install frontend dependencies:
+   ```bash
+   npm ci --legacy-peer-deps
+   ```
+2. Run the application in Tauri development mode:
+   ```bash
+   npm run tauri dev
+   ```

@@ -338,3 +338,308 @@ pub async fn open_configs_with_native_editor(
 
     Ok(())
 }
+
+// ----------------- INTEGRATION DIAGNOSTICS & TESTING -----------------
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct DiagnosticResult {
+    pub service: String,
+    pub status: bool,
+    pub message: String,
+    pub details: Option<String>,
+}
+
+async fn check_ollama_service() -> DiagnosticResult {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build();
+    match client {
+        Ok(c) => {
+            match c.get("http://127.0.0.1:11434/").send().await {
+                Ok(resp) => {
+                    if resp.status().is_success() {
+                        DiagnosticResult {
+                            service: "ollama".to_string(),
+                            status: true,
+                            message: "Ollama is running locally".to_string(),
+                            details: Some("Successfully pinged local Ollama endpoint (port 11434).".to_string()),
+                        }
+                    } else {
+                        DiagnosticResult {
+                            service: "ollama".to_string(),
+                            status: false,
+                            message: format!("Ollama returned status {}", resp.status()),
+                            details: None,
+                        }
+                    }
+                }
+                Err(e) => {
+                    DiagnosticResult {
+                        service: "ollama".to_string(),
+                        status: false,
+                        message: "Ollama is not running".to_string(),
+                        details: Some(format!("Could not connect to http://127.0.0.1:11434: {}", e)),
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            DiagnosticResult {
+                service: "ollama".to_string(),
+                status: false,
+                message: "Failed to create HTTP client".to_string(),
+                details: Some(e.to_string()),
+            }
+        }
+    }
+}
+
+async fn check_gemini_service() -> DiagnosticResult {
+    match crate::gemini::get_gemini_config() {
+        Ok(config) => {
+            if config.key.is_empty() {
+                DiagnosticResult {
+                    service: "gemini".to_string(),
+                    status: false,
+                    message: "Gemini key is empty or not set".to_string(),
+                    details: Some("Please set your Gemini API Key in Settings > Integrations.".to_string()),
+                }
+            } else {
+                let client = reqwest::Client::new();
+                let url = format!(
+                    "https://generativelanguage.googleapis.com/v1beta/models?key={}",
+                    config.key
+                );
+                match client.get(&url).send().await {
+                    Ok(resp) => {
+                        let status_code = resp.status();
+                        if status_code.is_success() {
+                            DiagnosticResult {
+                                service: "gemini".to_string(),
+                                status: true,
+                                message: "Gemini API key is valid".to_string(),
+                                details: Some(format!(
+                                    "Connected successfully. Using model: {}",
+                                    if config.gemini_model.is_empty() { "gemini-1.5-flash-latest" } else { &config.gemini_model }
+                                )),
+                            }
+                        } else {
+                            let err_msg = resp.text().await.unwrap_or_default();
+                            DiagnosticResult {
+                                service: "gemini".to_string(),
+                                status: false,
+                                message: "Gemini API returned error".to_string(),
+                                details: Some(format!("Status code: {}. Details: {}", status_code, err_msg)),
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        DiagnosticResult {
+                            service: "gemini".to_string(),
+                            status: false,
+                            message: "Network request failed".to_string(),
+                            details: Some(e.to_string()),
+                        }
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            DiagnosticResult {
+                service: "gemini".to_string(),
+                status: false,
+                message: "Gemini config not found".to_string(),
+                details: Some(e),
+            }
+        }
+    }
+}
+
+async fn check_gsc_service() -> DiagnosticResult {
+    match crate::crawler::libs::read_credentials_file().await {
+        Ok(info) => {
+            if info.client_id.is_empty() {
+                DiagnosticResult {
+                    service: "gsc".to_string(),
+                    status: false,
+                    message: "GSC credentials are empty".to_string(),
+                    details: Some("Please set your Google Search Console client credentials.".to_string()),
+                }
+            } else {
+                let status_msg = if info.token.is_some() {
+                    "Authenticated"
+                } else {
+                    "Configured (Awaiting Auth)"
+                };
+                DiagnosticResult {
+                    service: "gsc".to_string(),
+                    status: info.token.is_some(),
+                    message: format!("GSC Status: {}", status_msg),
+                    details: Some(format!(
+                        "Project ID: {}\nTarget URL: {}\nSearch Type: {}\nRange: {}\nRows: {}",
+                        info.project_id, info.url, info.search_type, info.range, info.rows
+                    )),
+                }
+            }
+        }
+        Err(_) => {
+            DiagnosticResult {
+                service: "gsc".to_string(),
+                status: false,
+                message: "No credentials file found".to_string(),
+                details: Some("Google Search Console is not configured yet. Set credentials under Settings > Connectors.".to_string()),
+            }
+        }
+    }
+}
+
+async fn check_ga4_service() -> DiagnosticResult {
+    match crate::crawler::libs::read_ga4_credentials_file().await {
+        Ok(creds) => {
+            if creds.client_id.is_empty() {
+                DiagnosticResult {
+                    service: "ga4".to_string(),
+                    status: false,
+                    message: "GA4 client ID is empty".to_string(),
+                    details: Some("Please set your Google Analytics 4 client credentials.".to_string()),
+                }
+            } else {
+                let status_msg = if creds.token.is_some() {
+                    "Authenticated"
+                } else {
+                    "Configured (Awaiting Auth)"
+                };
+                DiagnosticResult {
+                    service: "ga4".to_string(),
+                    status: creds.token.is_some(),
+                    message: format!("GA4 Status: {}", status_msg),
+                    details: Some(format!(
+                        "Project ID: {}\nProperty ID: {}",
+                        creds.project_id, creds.property_id
+                    )),
+                }
+            }
+        }
+        Err(_) => {
+            DiagnosticResult {
+                service: "ga4".to_string(),
+                status: false,
+                message: "No GA4 credentials file found".to_string(),
+                details: Some("GA4 is not configured yet. Configure it under Settings > Connectors.".to_string()),
+            }
+        }
+    }
+}
+
+async fn check_clarity_service() -> DiagnosticResult {
+    match crate::crawler::libs::get_microsoft_clarity_credentials().await {
+        Ok(creds) => {
+            if creds.len() >= 2 && !creds[0].is_empty() && !creds[1].is_empty() {
+                DiagnosticResult {
+                    service: "clarity".to_string(),
+                    status: true,
+                    message: "Microsoft Clarity configured".to_string(),
+                    details: Some(format!("Endpoint: {}", creds[0])),
+                }
+            } else {
+                DiagnosticResult {
+                    service: "clarity".to_string(),
+                    status: false,
+                    message: "Clarity credentials incomplete".to_string(),
+                    details: Some("Clarity requires both API endpoint and API token to be set.".to_string()),
+                }
+            }
+        }
+        Err(_) => {
+            DiagnosticResult {
+                service: "clarity".to_string(),
+                status: false,
+                message: "No Clarity credentials file found".to_string(),
+                details: Some("Microsoft Clarity is not configured yet. Configure under Settings > Connectors.".to_string()),
+            }
+        }
+    }
+}
+
+async fn check_pagespeed_service() -> DiagnosticResult {
+    match crate::crawler::libs::load_api_keys().await {
+        Ok(keys) => {
+            if keys.page_speed_key.is_empty() {
+                DiagnosticResult {
+                    service: "pagespeed".to_string(),
+                    status: false,
+                    message: "PageSpeed Insights key is empty".to_string(),
+                    details: Some("Please configure your PageSpeed Insights API key under Settings > Integrations.".to_string()),
+                }
+            } else {
+                let client = reqwest::Client::new();
+                let url = format!(
+                    "https://pagespeedonline.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://example.com&key={}",
+                    keys.page_speed_key
+                );
+                match client.get(&url).send().await {
+                    Ok(resp) => {
+                        let status_code = resp.status();
+                        if status_code.is_success() {
+                            DiagnosticResult {
+                                service: "pagespeed".to_string(),
+                                status: true,
+                                message: "PageSpeed API key is valid".to_string(),
+                                details: Some("PageSpeed Insights API responded successfully.".to_string()),
+                            }
+                        } else {
+                            let err_msg = resp.text().await.unwrap_or_default();
+                            DiagnosticResult {
+                                service: "pagespeed".to_string(),
+                                status: false,
+                                message: "PageSpeed API returned error".to_string(),
+                                details: Some(format!("Status code: {}. Details: {}", status_code, err_msg)),
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        DiagnosticResult {
+                            service: "pagespeed".to_string(),
+                            status: false,
+                            message: "Network request failed".to_string(),
+                            details: Some(e.to_string()),
+                        }
+                    }
+                }
+            }
+        }
+        Err(_) => {
+            DiagnosticResult {
+                service: "pagespeed".to_string(),
+                status: false,
+                message: "No PageSpeed API keys file found".to_string(),
+                details: Some("Please configure your PageSpeed Insights API key under Settings > Integrations.".to_string()),
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn run_all_integration_diagnostics() -> Result<Vec<DiagnosticResult>, String> {
+    let mut results = Vec::new();
+    results.push(check_ollama_service().await);
+    results.push(check_gemini_service().await);
+    results.push(check_gsc_service().await);
+    results.push(check_ga4_service().await);
+    results.push(check_clarity_service().await);
+    results.push(check_pagespeed_service().await);
+    Ok(results)
+}
+
+#[tauri::command]
+pub async fn run_single_integration_diagnostic(service: String) -> Result<DiagnosticResult, String> {
+    match service.as_str() {
+        "ollama" => Ok(check_ollama_service().await),
+        "gemini" => Ok(check_gemini_service().await),
+        "gsc" => Ok(check_gsc_service().await),
+        "ga4" => Ok(check_ga4_service().await),
+        "clarity" => Ok(check_clarity_service().await),
+        "pagespeed" => Ok(check_pagespeed_service().await),
+        _ => Err(format!("Unknown service: {}", service)),
+    }
+}

@@ -35,5 +35,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# local environment files
+.env
+.env.local
+.env.*.local
+src-tauri/.env
+
+# rust / tauri build artifacts
+src-tauri/target/
+
 .* 
 !.gitignore
+!.env.example

@@ -382,6 +382,8 @@ async fn main() {
             domain_commands::export_files_to_excel_command,
             domain_commands::export_cwv_to_excel_command,
             commands::open_configs_with_native_editor,
+            commands::run_all_integration_diagnostics,
+            commands::run_single_integration_diagnostic,
             loganalyser::log_commands::check_logs_command,
             loganalyser::log_commands::check_logs_from_paths_command,
             loganalyser::log_commands::get_file_size,

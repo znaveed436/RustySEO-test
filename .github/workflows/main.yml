@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release
+  workflow_dispatch: # Allows manual trigger of Windows/Mac/Linux builds
 
 jobs:
   publish-tauri:

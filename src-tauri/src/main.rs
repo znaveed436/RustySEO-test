@@ -36,6 +36,11 @@ pub mod users;
 
 pub mod machine_learning;
 
+// NEW: Advanced SEO feature modules
+pub mod image_alt_suggester;
+pub mod a11y_audit;
+pub mod content_gap_analyzer;
+
 pub mod downloads {
     pub mod csv;
     pub mod excel;
@@ -456,6 +461,13 @@ async fn main() {
             loganalyser::helpers::crawl_log::load_crawl_from_database,
             gsc_auth::start_gsc_auth_server,
             gsc_auth::exchange_gsc_code,
+            // NEW: Advanced SEO feature commands
+            image_alt_suggester::suggest_image_alt_text_command,
+            image_alt_suggester::export_alt_suggestions_csv_command,
+            a11y_audit::run_a11y_audit_command,
+            a11y_audit::export_a11y_audit_csv_command,
+            content_gap_analyzer::analyze_content_gaps_command,
+            content_gap_analyzer::export_gap_analysis_csv_command,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

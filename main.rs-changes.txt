@@ -1,0 +1,16 @@
+In src-tauri/src/main.rs, keep/add these module declarations near the other pub mod lines:
+
+pub mod image_alt_suggester;
+pub mod a11y_audit;
+pub mod content_gap_analyzer;
+
+Inside tauri::generate_handler![ ... ], keep/add these registrations:
+
+image_alt_suggester::suggest_image_alt_text_command,
+image_alt_suggester::export_alt_suggestions_csv_command,
+a11y_audit::run_a11y_audit_command,
+a11y_audit::export_a11y_audit_csv_command,
+content_gap_analyzer::analyze_content_gaps_command,
+content_gap_analyzer::export_gap_analysis_csv_command,
+
+Your current JulesTest main.rs already contains these lines, so do not replace the entire main.rs file.

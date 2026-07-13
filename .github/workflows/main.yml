@@ -1,58 +1,64 @@
-name: 'build-windows-exe'
+name: build-windows-exe
 
 on:
   push:
     branches:
       - JulesTest
-  workflow_dispatch: # Allows manual trigger
+    tags:
+      - "v*"
+  workflow_dispatch:
 
 jobs:
   build-windows:
+    runs-on: windows-latest
+
     permissions:
       contents: write
-    runs-on: windows-latest
-    
+
+    env:
+      CARGO_TERM_COLOR: always
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: JulesTest
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: 'lts/*'
-          cache: 'npm'
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Clear npm cache
-        run: npm cache clean --force
-
       - name: Install frontend dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Install Tauri CLI locally
-        run: npm install --save-dev @tauri-apps/cli@latest
-
       - name: Verify Tauri CLI
-        run: npx tauri --version
+        run: .\node_modules\.bin\tauri.cmd --version
 
-      - name: Build Tauri app (Windows exe)
-        run: npx tauri build
+      - name: Build Tauri Windows installers
+        run: .\node_modules\.bin\tauri.cmd build
 
-      - name: Upload exe artifact
+      - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
-          path: src-tauri/target/release/bundle/msi/
+          name: windows-installers
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
         with:
-          files: src-tauri/target/release/bundle/msi/**/*
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
           draft: false
           prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

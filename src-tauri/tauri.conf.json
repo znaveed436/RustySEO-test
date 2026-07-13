@@ -10,7 +10,9 @@
     "active": true,
     "category": "DeveloperTool",
     "copyright": "",
-    "targets": "all",
+    "targets": [
+      "nsis"
+    ],
     "externalBin": [],
     "icon": [
       "icons/32x32.png",

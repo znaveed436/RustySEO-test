@@ -12,15 +12,15 @@ jobs:
         uses: johnnyreilly/schemar@v0.1.1
         with:
           urls: |
+            https://www.foamex.com.au/product/qpods/
+            https://www.foamex.com.au/product/styropod-eps-waffle-pods/
             https://www.foamex.com.au/product/styrosheet-eps-sheets/
             https://www.foamex.com.au/product/styrotherm-xps-sheets/
-            https://www.foamex.com.au/product/styropak-eps-boxes/
             https://www.foamex.com.au/product/geofoamx-geofoam-void-fill/
-            https://www.foamex.com.au/product/styrolink-xps-roof-spacers/
-            https://www.foamex.com.au/product/qpods/
             https://www.foamex.com.au/product/styrobloc/
             https://www.foamex.com.au/product/expol-underfloor-insulation/
+            https://www.foamex.com.au/product/styrolink-xps-roof-spacers/
             https://www.foamex.com.au/product/styroroof-green-roofs/
+            https://www.foamex.com.au/product/styropak-eps-boxes/
             https://www.foamex.com.au/product/insulclad-rendered-wall-cladding/
             https://www.foamex.com.au/product/expol-underfloor-r1-8/
-            https://www.foamex.com.au/product/styropod-eps-waffle-pods/
